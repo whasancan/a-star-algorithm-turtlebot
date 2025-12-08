@@ -198,7 +198,7 @@ rviz2
 
 ## 👤 Geliştirici
 
-**Hasancan** - 2024
+**Hasancan** - 2025
 
 ## 📄 Lisans
 
