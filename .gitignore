@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+install/
+log/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Compiled files
+*.o
+*.so
+*.a
+
+# Python cache
+__pycache__/
+*.pyc
