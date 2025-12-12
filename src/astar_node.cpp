@@ -8,21 +8,21 @@
 #include <set>
 #include <algorithm>
 
-#include "rclcpp/rclcpp.hpp"
-#include "nav_msgs/msg/occupancy_grid.hpp"
+#include "rclcpp/rclcpp.hpp" // c++ için ROS2 temel kütüphanesi
+#include "nav_msgs/msg/occupancy_grid.hpp" // navigasyonla ilgili mesajlar harita, yol, odometri
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp" // geometri ile ilgili mesajlar poz, hız
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 using namespace std::chrono_literals;
 
-struct AStarNode {
+struct AStarNode { // A* algoritması içiin temel düğüm yapısı
     int x, y;
     double g_cost, h_cost, f_cost;
-    std::shared_ptr<AStarNode> parent;
+    std::shared_ptr<AStarNode> parent; // modern C++'da akıllı işaretçi kullanımı, new delete gibi bellek yönetimi yok
 
     AStarNode(int _x, int _y, double _g, double _h, std::shared_ptr<AStarNode> _parent = nullptr)
         : x(_x), y(_y), g_cost(_g), h_cost(_h), parent(_parent) {
@@ -175,6 +175,10 @@ private:
         auto start_node = std::make_shared<AStarNode>(start_x, start_y, 0.0, heuristic(start_x, start_y, goal_x, goal_y));
         open_list.push(start_node);
 
+        // Robot 8 yöne hareket edebiliyor. 
+        // Düz hareketler 1 maliyet, çapraz hareketler √2 ≈ 1.41 maliyet. 
+        // Çünkü çapraz mesafe daha uzun.
+        
         int dx[] = {0, 0, 1, -1, 1, 1, -1, -1};
         int dy[] = {1, -1, 0, 0, 1, -1, 1, -1};
         double cost[] = {1.0, 1.0, 1.0, 1.0, 1.41, 1.41, 1.41, 1.41};

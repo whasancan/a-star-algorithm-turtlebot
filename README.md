@@ -6,6 +6,38 @@ ROS2 Humble üzerinde TurtleBot3 robotu için **C++ ile yazılmış** A* algorit
 ![C++](https://img.shields.io/badge/C++-17-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+---
+
+## 📸 Demo
+
+### Gazebo Simülasyonu
+> TurtleBot3 robot, engelli dünyada path planning ile hedefe ilerliyor.
+
+![Gazebo Simulation](images/gazebo.png)
+
+### RViz Path Visualization
+> A* algoritması ile hesaplanan optimal yol (yeşil çizgi) ve harita görünümü.
+
+![RViz Path](images/rviz_path.png)
+
+### Sistem Çalışma Diyagramı
+
+```
+┌─────────────┐     /goal_pose      ┌─────────────┐     /astar_path     ┌─────────────┐
+│    RViz     │ ──────────────────► │  A* Planner │ ──────────────────► │Path Follower│
+│  (Hedef)    │                     │   (C++)     │                     │   (C++)     │
+└─────────────┘                     └─────────────┘                     └──────┬──────┘
+                                          ▲                                    │
+                                          │ /map                               │ /cmd_vel
+                                          │                                    ▼
+                                    ┌─────────────┐                     ┌─────────────┐
+                                    │ Map Server  │                     │  TurtleBot3 │
+                                    └─────────────┘                     │  (Gazebo)   │
+                                                                        └─────────────┘
+```
+
+---
+
 ## 🎯 Özellikler
 
 - ✅ **A* Path Planning** - Optimal yol bulma algoritması
@@ -179,6 +211,51 @@ rviz2
 - **Kontrol döngüsü**: 20 Hz
 - **Waypoint toleransı**: 0.12m
 
+---
+
+## 🧠 A* Algoritması Nasıl Çalışır?
+
+### Adım Adım Açıklama
+
+```
+1. Başlangıç düğümünü open_list'e ekle
+2. Open_list boş değilken:
+   a. En düşük f değerli düğümü al
+   b. Hedefe ulaştıysan → Yolu döndür
+   c. 8 komşuyu kontrol et:
+      - Geçerli mi? (harita içinde)
+      - Engel mi? (inflation dahil)
+      - Ziyaret edilmiş mi?
+   d. Geçerli komşuları open_list'e ekle
+3. Yol bulunamadı
+```
+
+### Görsel Açıklama
+
+```
+    ┌───┬───┬───┬───┬───┐
+    │   │   │ ▓ │   │   │     ▓ = Engel
+    ├───┼───┼───┼───┼───┤     S = Start (Başlangıç)
+    │   │ S │ ▓ │   │ G │     G = Goal (Hedef)
+    ├───┼───┼───┼───┼───┤     * = Bulunan yol
+    │   │ * │ ▓ │ * │ * │
+    ├───┼───┼───┼───┼───┤
+    │   │ * │ * │ * │   │
+    ├───┼───┼───┼───┼───┤
+    │   │   │   │   │   │
+    └───┴───┴───┴───┴───┘
+```
+
+### Neden A* Kullandım?
+
+| Algoritma | Avantaj | Dezavantaj |
+|-----------|---------|------------|
+| **BFS** | Basit | En kısa yolu bulmaz (ağırlıklı) |
+| **Dijkstra** | Optimal | Yavaş (her yöne bakar) |
+| **A*** ✅ | Optimal + Hızlı | Heuristic gerekir |
+
+---
+
 ## 🔮 Gelecek Geliştirmeler
 
 - [ ] Dinamik engel tespiti (LiDAR ile)
@@ -198,7 +275,9 @@ rviz2
 
 ## 👤 Geliştirici
 
-**Hasancan** - 2024
+**Hasancan** - 2025
+
+---
 
 ## 📄 Lisans
 
