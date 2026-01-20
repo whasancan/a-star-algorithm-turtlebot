@@ -1,0 +1,55 @@
+# ============================================================
+# TurtleBot3 A* Planner - Docker Compose
+# ============================================================
+#
+# Features:
+# - X11 socket mount: For Gazebo and RViz GUI
+# - network_mode: host: For ROS2 DDS discovery
+# - Volume mounts: Maps for persistence
+#
+# Usage:
+#   docker-compose up --build
+#
+# Interactive shell:
+#   docker-compose run ros2_nav bash
+# ============================================================
+
+services:
+  ros2_nav:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+    # X11 GUI support
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=1 # Software rendering fallback
+      - TURTLEBOT3_MODEL=burger
+
+    # X11 socket and map volumes
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${HOME}/.Xauthority:/root/.Xauthority:rw
+      # Map file mount
+      - ${HOME}/turtlebot3_map.yaml:/root/turtlebot3_map.yaml:ro
+      - ${HOME}/turtlebot3_map.pgm:/root/turtlebot3_map.pgm:ro
+
+    # Host network for ROS2 DDS
+    network_mode: host
+
+    # GPU access (Example for NVIDIA, uncomment if needed)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # Interactive terminal
+    stdin_open: true
+    tty: true
+
+    # Start command - Launches Nav2 with A*
+    command: ros2 launch my_astar_planner nav2_launch.py

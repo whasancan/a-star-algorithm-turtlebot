@@ -1,284 +1,162 @@
-# TurtleBot3 A* Path Planner 🤖
+# TurtleBot3 A* Global Planner Plugin 🚀
 
-ROS2 Humble üzerinde TurtleBot3 robotu için **C++ ile yazılmış** A* algoritması tabanlı path planning ve path following paketi.
+A custom **A* (A-Star) Global Planner Plugin** implementation for the **ROS 2 Humble Navigation Stack (Nav2)**. This project demonstrates how to create a custom global planner plugin compliant with `nav2_core::GlobalPlanner` interface, integrated with `nav2_costmap_2d` and deployed via Docker.
 
 ![ROS2](https://img.shields.io/badge/ROS2-Humble-blue)
-![C++](https://img.shields.io/badge/C++-17-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+![Nav2](https://img.shields.io/badge/Nav2-Plugin-green)
+![License](https://img.shields.io/badge/License-MIT-orange)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 
 ---
 
-## 📸 Demo
+## 📸 Overview
 
-### Gazebo Simülasyonu
-> TurtleBot3 robot, engelli dünyada path planning ile hedefe ilerliyor.
+This plugin replaces the standard NavPlanner or SmacPlanner with a custom A* implementation. It allows the TurtleBot3 to plan optimal paths in a static map, considering inflation layers and obstacles.
 
-![Gazebo Simulation](images/gazebo.png)
+### Architecture
 
-### RViz Path Visualization
-> A* algoritması ile hesaplanan optimal yol (yeşil çizgi) ve harita görünümü.
-
-![RViz Path](images/rviz_path.png)
-
-### Sistem Çalışma Diyagramı
-
-```
-┌─────────────┐     /goal_pose      ┌─────────────┐     /astar_path     ┌─────────────┐
-│    RViz     │ ──────────────────► │  A* Planner │ ──────────────────► │Path Follower│
-│  (Hedef)    │                     │   (C++)     │                     │   (C++)     │
-└─────────────┘                     └─────────────┘                     └──────┬──────┘
-                                          ▲                                    │
-                                          │ /map                               │ /cmd_vel
-                                          │                                    ▼
-                                    ┌─────────────┐                     ┌─────────────┐
-                                    │ Map Server  │                     │  TurtleBot3 │
-                                    └─────────────┘                     │  (Gazebo)   │
-                                                                        └─────────────┘
+```mermaid
+graph TD
+    A[RViz 2D Goal] -->|/goal_pose| B(Goal Bridge Node)
+    B -->|Action Client| C[Nav2 BT Navigator]
+    C -->|ComputePathToPose| D[Planner Server]
+    D -->|Load Plugin| E[A* Global Planner Plugin]
+    E -->|Get Cost| F[Global Costmap]
+    E -->|Return Path| D
+    D -->|Path| G[Controller Server]
+    G -->|Cmd_Vel| H[TurtleBot3]
 ```
 
 ---
 
-## 🎯 Özellikler
+## ✨ Features
 
-- ✅ **A* Path Planning** - Optimal yol bulma algoritması
-- ✅ **8 Yönlü Hareket** - Düz + çapraz hareket desteği
-- ✅ **Euclidean Heuristic** - Doğru mesafe tahmini
-- ✅ **Inflation Layer** - Robot yarıçapı kadar güvenlik mesafesi
-- ✅ **Path Following** - Robotun fiziksel olarak yolu takip etmesi
-- ✅ **RViz Entegrasyonu** - Görsel hedef belirleme
-- ✅ **Tek Komutla Başlatma** - Launch file ile kolay kullanım
+- **Standard Nav2 Plugin**: Implements `nav2_core::GlobalPlanner` interface.
+- **Costmap Integration**: Works directly with `nav2_costmap_2d` to handle obstacles and inflation layers safely.
+- **Improved Goal Setting**: Includes a custom **Goal Bridge** node to make RViz's standard "2D Goal Pose" button compatible with Nav2.
+- **Dockerized**: Fully containerized environment including Gazebo, RViz, and Nav2 stack.
+- **A* Algorithm**:
+  - Manhattan/Euclidean Heuristics
+  - 8-connected grid search
+  - Priority Queue optimization
 
-## 📦 Paket Yapısı
+---
 
-```
-my_astar_planner/
-├── src/
-│   ├── astar_node.cpp        # A* algoritması ve path planning
-│   └── path_follower.cpp     # Robot hareket kontrolü
-├── launch/
-│   └── astar_planner.launch.py
-├── config/
-│   └── astar_rviz.rviz
-├── include/
-│   └── my_astar_planner/
-├── CMakeLists.txt
-├── package.xml
-└── README.md
-```
+## � Installation & Build
 
-## 🚀 Kurulum
+### Prerequisites
+- Ubuntu 22.04 LTS
+- ROS 2 Humble
+- TurtleBot3 Packages (`ros-humble-turtlebot3*`)
+- Nav2 Packages (`ros-humble-navigation2`, `ros-humble-nav2-bringup`)
 
-### Gereksinimler
-- Ubuntu 22.04
-- ROS2 Humble
-- TurtleBot3 paketleri
-- Gazebo
-- Nav2 Map Server
-
-### Derleme
+### Build from Source
 
 ```bash
-# Workspace oluştur (yoksa)
+# Create workspace
 mkdir -p ~/turtlebot3_ws/src
 cd ~/turtlebot3_ws/src
 
-# Paketi klonla
-git clone https://github.com/KULLANICI_ADIN/my_astar_planner.git
+# Clone repository
+git clone https://github.com/whasancan/a-star-algorithm-turtlebot.git my_astar_planner
 
-# Derle
+# Install dependencies
 cd ~/turtlebot3_ws
-colcon build --packages-select my_astar_planner
+rosdep install --from-paths src --ignore-src -r -y
+
+# Build
+colcon build --symlink-install
 source install/setup.bash
 ```
 
-## 🎮 Kullanım
+---
 
-### Tek Komutla Çalıştırma
+## 🚀 Usage
 
-```bash
-export TURTLEBOT3_MODEL=burger
-source ~/turtlebot3_ws/install/setup.bash
-ros2 launch my_astar_planner astar_planner.launch.py
-```
+### Option 1: Running Locally
 
-Bu komut otomatik olarak başlatır:
-1. **Gazebo** - TurtleBot3 simülasyonu
-2. **Map Server** - Kayıtlı haritayı yükler
-3. **A* Planner** - Path planning node
-4. **RViz** - Görselleştirme
+1. **Launch Everything (Simulation + Nav2 + RViz):**
+   ```bash
+   export TURTLEBOT3_MODEL=burger
+   ros2 launch my_astar_planner nav2_launch.py
+   ```
 
-### Robot Hareketi İçin
+2. **Set Initial Pose:**
+   - In RViz, use the **"2D Pose Estimate"** button to set the robot's initial location on the map.
 
-Ayrı bir terminalde path follower'ı başlat:
+3. **Send a Goal:**
+   - Use the standard **"2D Goal Pose"** button in RViz.
+   - Click anywhere on the map. The robot will plan a path and move!
 
-```bash
-source ~/turtlebot3_ws/install/setup.bash
-ros2 run my_astar_planner path_follower
-```
+### Option 2: Running with Docker 🐳
 
-### Hedef Belirleme
+Avoid cryptic dependencies and run the entire stack in a container.
 
-1. RViz'de **"2D Goal Pose"** butonuna tıkla
-2. Haritada hedef noktaya tıkla ve sürükleyerek yönü belirle
-3. Yeşil path çizgisi görünecek ve robot hedefe gidecek
+1. **Build the Image:**
+   ```bash
+   cd src/my_astar_planner/docker
+   docker-compose build
+   ```
 
-## 📡 ROS2 Topic'leri
+2. **Run the Container:**
+   ```bash
+   xhost +local:root  # Allow GUI display
+   docker-compose up
+   ```
 
-| Topic | Mesaj Tipi | Açıklama |
-|-------|------------|----------|
-| `/map` | `nav_msgs/OccupancyGrid` | Harita verisi (subscribe) |
-| `/odom` | `nav_msgs/Odometry` | Robot pozisyonu (subscribe) |
-| `/goal_pose` | `geometry_msgs/PoseStamped` | RViz hedefi (subscribe) |
-| `/astar_path` | `nav_msgs/Path` | Hesaplanan yol (publish) |
-| `/cmd_vel` | `geometry_msgs/Twist` | Hareket komutu (publish) |
-
-## ⚙️ A* Algoritması Detayları
-
-### Temel Formül
-```
-f(n) = g(n) + h(n)
-```
-- **g(n)**: Başlangıçtan n'e kadar gerçek maliyet
-- **h(n)**: n'den hedefe tahmini maliyet (Euclidean)
-- **f(n)**: Toplam maliyet
-
-### Önemli Parametreler
-
-| Parametre | Değer | Açıklama |
-|-----------|-------|----------|
-| Hareket Yönleri | 8 | Düz (4) + Çapraz (4) |
-| Çapraz Maliyet | 1.41 | √2 (Euclidean) |
-| Engel Eşiği | 50 | occupancy > 50 = engel |
-| Inflation Radius | 3 hücre | ~0.15m güvenlik mesafesi |
-
-### Kod Yapısı
-
-```cpp
-// AStarNode - Her grid hücresi için düğüm
-struct AStarNode {
-    int x, y;           // Grid koordinatları
-    double g_cost;      // Başlangıçtan maliyet
-    double h_cost;      // Hedefe tahmini
-    double f_cost;      // g + h
-    std::shared_ptr<AStarNode> parent;  // Yol takibi için
-};
-
-// Priority Queue - En düşük f önce
-std::priority_queue<..., CompareNode> open_list;
-```
-
-## 🗺️ Harita Oluşturma
-
-Kendi haritanızı oluşturmak için:
-
-```bash
-# 1. SLAM başlat
-export TURTLEBOT3_MODEL=burger
-ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=True
-
-# 2. Robotu gezdirerek harita oluştur
-ros2 run turtlebot3_teleop teleop_keyboard
-
-# 3. Haritayı kaydet
-ros2 run nav2_map_server map_saver_cli -f ~/turtlebot3_map
-```
-
-## 🔧 Manuel Başlatma
-
-Ayrı terminallerde:
-
-```bash
-# Terminal 1: Gazebo
-ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
-
-# Terminal 2: Map Server + Lifecycle
-ros2 run nav2_map_server map_server --ros-args -p yaml_filename:=$HOME/turtlebot3_map.yaml
-ros2 lifecycle set /map_server configure && ros2 lifecycle set /map_server activate
-
-# Terminal 3: A* Planner
-ros2 run my_astar_planner astar_node
-
-# Terminal 4: Path Follower
-ros2 run my_astar_planner path_follower
-
-# Terminal 5: RViz
-rviz2
-```
-
-## 📊 Performans
-
-- **Path hesaplama**: < 100ms (tipik harita boyutları için)
-- **Kontrol döngüsü**: 20 Hz
-- **Waypoint toleransı**: 0.12m
+   *Note: This launches Gazebo and RViz from within the Docker container.*
 
 ---
 
-## 🧠 A* Algoritması Nasıl Çalışır?
-
-### Adım Adım Açıklama
+## 📁 Project Structure
 
 ```
-1. Başlangıç düğümünü open_list'e ekle
-2. Open_list boş değilken:
-   a. En düşük f değerli düğümü al
-   b. Hedefe ulaştıysan → Yolu döndür
-   c. 8 komşuyu kontrol et:
-      - Geçerli mi? (harita içinde)
-      - Engel mi? (inflation dahil)
-      - Ziyaret edilmiş mi?
-   d. Geçerli komşuları open_list'e ekle
-3. Yol bulunamadı
+my_astar_planner/
+├── config/
+│   ├── nav2_params.yaml      # Nav2 & Planner configuration
+│   └── nav2_rviz.rviz        # RViz configuration
+├── docker/
+│   ├── Dockerfile            # Container definition
+│   ├── docker-compose.yml    # Orchestration
+│   └── entrypoint.sh         # Startup script
+├── include/my_astar_planner/
+│   └── astar_global_planner.hpp  # Plugin header
+├── launch/
+│   └── nav2_launch.py        # Main launch file
+├── scripts/
+│   ├── goal_bridge.py        # RViz to Nav2 bridge
+│   └── send_goal.sh          # CLI helper
+├── src/
+│   └── astar_global_planner.cpp  # Plugin implementation
+├── CMakeLists.txt
+├── package.xml
+└── plugin_description.xml    # Plugin export definition
 ```
-
-### Görsel Açıklama
-
-```
-    ┌───┬───┬───┬───┬───┐
-    │   │   │ ▓ │   │   │     ▓ = Engel
-    ├───┼───┼───┼───┼───┤     S = Start (Başlangıç)
-    │   │ S │ ▓ │   │ G │     G = Goal (Hedef)
-    ├───┼───┼───┼───┼───┤     * = Bulunan yol
-    │   │ * │ ▓ │ * │ * │
-    ├───┼───┼───┼───┼───┤
-    │   │ * │ * │ * │   │
-    ├───┼───┼───┼───┼───┤
-    │   │   │   │   │   │
-    └───┴───┴───┴───┴───┘
-```
-
-### Neden A* Kullandım?
-
-| Algoritma | Avantaj | Dezavantaj |
-|-----------|---------|------------|
-| **BFS** | Basit | En kısa yolu bulmaz (ağırlıklı) |
-| **Dijkstra** | Optimal | Yavaş (her yöne bakar) |
-| **A*** ✅ | Optimal + Hızlı | Heuristic gerekir |
 
 ---
 
-## 🔮 Gelecek Geliştirmeler
+## � Configuration
 
-- [ ] Dinamik engel tespiti (LiDAR ile)
-- [ ] Path smoothing
-- [ ] Farklı heuristic seçenekleri
-- [ ] ROS2 parameter server entegrasyonu
+You can tune the planner parameters in `config/nav2_params.yaml`:
 
-## 📋 Bağımlılıklar
-
-```xml
-<depend>rclcpp</depend>
-<depend>nav_msgs</depend>
-<depend>geometry_msgs</depend>
-<depend>tf2_ros</depend>
-<depend>tf2_geometry_msgs</depend>
+```yaml
+planner_server:
+  ros__parameters:
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "my_astar_planner/AStarGlobalPlanner"
+      # Potential internal parameters could be added here
 ```
-
-## 👤 Geliştirici
-
-**Hasancan** - 2025
 
 ---
 
-## 📄 Lisans
+## 👤 Author
 
-MIT License
+**Hasancan**
+- GitHub: [@whasancan](https://github.com/whasancan)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

@@ -1,0 +1,13 @@
+<!--
+  Pluginlib Plugin Tanımlama Dosyası
+  
+  Bu dosya Nav2'ye plugin'imizi tanıtır.
+  CMakeLists.txt'de pluginlib_export_plugin_description_file ile kayıt edilir.
+-->
+<library path="astar_global_planner">
+  <class name="my_astar_planner/AStarGlobalPlanner" 
+         type="my_astar_planner::AStarGlobalPlanner" 
+         base_class_type="nav2_core::GlobalPlanner">
+    <description>A* path planning algorithm implemented as Nav2 global planner plugin</description>
+  </class>
+</library>
